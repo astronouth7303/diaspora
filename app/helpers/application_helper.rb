@@ -50,6 +50,9 @@ module ApplicationHelper
   end
 
   def person_image_tag(person)
+    if person.class == User
+      person = person.person.build
+    end
     image_location = person.profile.image_url
     image_location ||= "/images/user/default.jpg"
 
