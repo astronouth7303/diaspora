@@ -36,6 +36,7 @@ end
         ws.onclose { Diaspora::WebSocket.unsubscribe(ws.request['Path'].gsub('/',''), sid) }
       }
     end
+    puts "Websocket server started."
     process_message
   }
 
