@@ -22,6 +22,7 @@ end
   EM.run {
     Diaspora::WebSocket.initialize_channels
 
+    puts "Starting WebSocket..."
     EventMachine::WebSocket.start(
                   :host => "0.0.0.0",
                   :port => APP_CONFIG[:socket_port],
