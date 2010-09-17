@@ -7,7 +7,7 @@
 class MessageHandler
 
 
-  NUM_TRIES = 3
+  NUM_TRIES = 5
   TIMEOUT = 5 #seconds
 
   def initialize
@@ -27,20 +27,25 @@ class MessageHandler
     @queue.pop{ |query|
       case query.type
       when :post
-        http = EventMachine::HttpRequest.new(query.destination).post :timeout => TIMEOUT, :body =>{:xml => query.body}
+        http = EventMachine::HttpRequest.new(query.destination).post :timeout => query.timeout, :body =>{:xml => query.body}
         http.callback { process; process}
       when :get
         http = EventMachine::HttpRequest.new(query.destination).get :timeout => TIMEOUT
-        http.callback {send_to_seed(query, http.response); process}
+        http.callback {
+          Rails.logger.info("Query succeeded")
+          send_to_seed(query, http.response); process
+        }
       else
         raise "message is not a type I know!"
       end
 
       http.errback {
         Rails.logger.info(http.response)
-        Rails.logger.info("Failure from #{query.destination}, retrying...")
+        Rails.logger.info(http.error)
+        Rails.logger.info("(#{query.try_count+1}) Failure from #{query.destination}, retrying...")
 
         query.try_count +=1
+        query.timeout *= 2 # Increase the timeout, because it might be a slow server
         @queue.push query unless query.try_count >= NUM_TRIES
         process
       }
@@ -56,7 +61,7 @@ class MessageHandler
   end
 
   class Message
-    attr_accessor :type, :destination, :body, :callback, :owner_url, :try_count
+    attr_accessor :type, :destination, :body, :callback, :owner_url, :try_count, :timeout
     def initialize(type, dest, opts = {})
       @type = type
       @owner_url = opts[:owner_url]
@@ -64,6 +69,7 @@ class MessageHandler
       @body = opts[:body]
       @callback = opts[:callback] ||= lambda{ process; process }
       @try_count = 0
+      @timeout = TIMEOUT
     end
   end
 end
