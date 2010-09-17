@@ -56,7 +56,6 @@ class User
   end
 
   def real_name
-    puts person.profile.first_name, person.profile.last_name
     "#{person.profile.first_name.to_s} #{person.profile.last_name.to_s}"
   end
 
